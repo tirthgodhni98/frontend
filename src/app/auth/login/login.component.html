@@ -32,6 +32,9 @@
         <div class="error-message" *ngIf="loginForm.get('password')?.errors?.['minlength'] && loginForm.get('password')?.touched">
           Password must be at least 6 characters
         </div>
+        <div class="forgot-password">
+          <a routerLink="/forgot-password">Forgot password?</a>
+        </div>
       </div>
 
       <div class="error-message" *ngIf="errorMessage">

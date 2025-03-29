@@ -109,6 +109,24 @@
         font-size: 1rem;
       }
     }
+
+    .forgot-password {
+      text-align: right;
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+
+      a {
+        color: #667eea;
+        text-decoration: none;
+        transition: color 0.3s ease;
+        font-weight: 500;
+
+        &:hover {
+          color: #764ba2;
+          text-decoration: underline;
+        }
+      }
+    }
   }
 
   .error-message {
