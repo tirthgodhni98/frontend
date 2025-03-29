@@ -7,12 +7,13 @@
           type="email" 
           placeholder="Email address" 
           formControlName="email" 
+          [class.error]="loginForm.get('email')?.errors && loginForm.get('email')?.touched"
           required 
         />
-        <div class="error" *ngIf="loginForm.get('email')?.errors?.['required'] && loginForm.get('email')?.touched">
+        <div class="error-message" *ngIf="loginForm.get('email')?.errors?.['required'] && loginForm.get('email')?.touched">
           Email is required
         </div>
-        <div class="error" *ngIf="loginForm.get('email')?.errors?.['email'] && loginForm.get('email')?.touched">
+        <div class="error-message" *ngIf="loginForm.get('email')?.errors?.['email'] && loginForm.get('email')?.touched">
           Please enter a valid email address
         </div>
       </div>
@@ -22,12 +23,13 @@
           type="password" 
           placeholder="Password" 
           formControlName="password" 
+          [class.error]="loginForm.get('password')?.errors && loginForm.get('password')?.touched"
           required 
         />
-        <div class="error" *ngIf="loginForm.get('password')?.errors?.['required'] && loginForm.get('password')?.touched">
+        <div class="error-message" *ngIf="loginForm.get('password')?.errors?.['required'] && loginForm.get('password')?.touched">
           Password is required
         </div>
-        <div class="error" *ngIf="loginForm.get('password')?.errors?.['minlength'] && loginForm.get('password')?.touched">
+        <div class="error-message" *ngIf="loginForm.get('password')?.errors?.['minlength'] && loginForm.get('password')?.touched">
           Password must be at least 6 characters
         </div>
       </div>
@@ -41,9 +43,11 @@
         [disabled]="loginForm.invalid || isLoading"
         [class.loading]="isLoading"
       >
-        {{ isLoading ? 'Signing in...' : 'Sign In' }}
+        {{ isLoading ? 'Signing in...' : 'SIGN IN' }}
       </button>
     </form>
-    <p>Don't have an account? <a routerLink="/register">Create one</a></p>
+    <div class="bottom-text">
+      Don't have an account? <a routerLink="/register">Create one</a>
+    </div>
   </div>
 </div>
