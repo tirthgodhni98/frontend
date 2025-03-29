@@ -1,9 +1,33 @@
 <div class="auth-container">
   <h2>Login</h2>
   <form (ngSubmit)="onSubmit()" [formGroup]="loginForm">
-    <input type="email" placeholder="Email" formControlName="email" required />
-    <input type="password" placeholder="Password" formControlName="password" required />
-    <button type="submit" [disabled]="loginForm.invalid">Login</button>
+    <div class="form-group">
+      <input type="email" placeholder="Email" formControlName="email" required />
+      <div class="error" *ngIf="loginForm.get('email')?.errors?.['required'] && loginForm.get('email')?.touched">
+        Email is required
+      </div>
+      <div class="error" *ngIf="loginForm.get('email')?.errors?.['email'] && loginForm.get('email')?.touched">
+        Please enter a valid email
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <input type="password" placeholder="Password" formControlName="password" required />
+      <div class="error" *ngIf="loginForm.get('password')?.errors?.['required'] && loginForm.get('password')?.touched">
+        Password is required
+      </div>
+      <div class="error" *ngIf="loginForm.get('password')?.errors?.['minlength'] && loginForm.get('password')?.touched">
+        Password must be at least 6 characters
+      </div>
+    </div>
+
+    <div class="error-message" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+
+    <button type="submit" [disabled]="loginForm.invalid || isLoading">
+      {{ isLoading ? 'Logging in...' : 'Login' }}
+    </button>
   </form>
   <p>Don't have an account? <a routerLink="/register">Register</a></p>
 </div>
