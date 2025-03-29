@@ -1,0 +1,38 @@
+<div class="dashboard-container">
+  <nav class="dashboard-nav">
+    <div class="nav-brand">Dashboard</div>
+    <div class="nav-user">
+      <span class="user-email">{{ user?.email }}</span>
+      <button class="logout-btn" (click)="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <main class="dashboard-main">
+    <div class="welcome-section">
+      <h1>Welcome, {{ user?.email }}</h1>
+      <p>You have successfully logged in to your dashboard.</p>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <h3>Profile</h3>
+        <p>Manage your account settings and preferences</p>
+      </div>
+
+      <div class="dashboard-card">
+        <h3>Analytics</h3>
+        <p>View your activity and statistics</p>
+      </div>
+
+      <div class="dashboard-card">
+        <h3>Settings</h3>
+        <p>Configure your application settings</p>
+      </div>
+
+      <div class="dashboard-card">
+        <h3>Help</h3>
+        <p>Get support and documentation</p>
+      </div>
+    </div>
+  </main>
+</div> 

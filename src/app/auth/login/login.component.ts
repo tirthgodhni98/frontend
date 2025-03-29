@@ -22,6 +22,11 @@ export class LoginComponent {
     private auth: AuthService,
     private router: Router
   ) {
+    const token = localStorage.getItem('token');
+    if (token) {
+      this.router.navigate(['/dashboard']);
+    }
+
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
