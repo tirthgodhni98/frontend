@@ -30,7 +30,6 @@ import { TooltipModule } from 'primeng/tooltip';
     HttpClientModule,
     DynamicDialogModule,
     AvatarModule,
-    ProfileComponent,
     TooltipModule
   ],
   providers: [DialogService],
