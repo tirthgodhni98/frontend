@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Task, TaskBoard } from '../../models/task.model';
@@ -6,7 +6,6 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
-import { DragDropModule } from 'primeng/dragdrop';
 import { v4 as uuidv4 } from 'uuid';
 import { TaskService } from '../services/task.service';
 import { HttpClientModule } from '@angular/common/http';
@@ -15,6 +14,8 @@ import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { DynamicDialogModule } from 'primeng/dynamicdialog';
 import { AvatarModule } from 'primeng/avatar';
 import { TooltipModule } from 'primeng/tooltip';
+import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-dashboard',
@@ -26,17 +27,17 @@ import { TooltipModule } from 'primeng/tooltip';
     ButtonModule, 
     DialogModule, 
     InputTextModule, 
-    DragDropModule, 
     HttpClientModule,
     DynamicDialogModule,
     AvatarModule,
-    TooltipModule
+    TooltipModule,
+    ToastModule
   ],
-  providers: [DialogService],
+  providers: [DialogService, MessageService],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, AfterViewInit {
   user: any;
 
   boards: TaskBoard[] = [];
@@ -45,12 +46,14 @@ export class DashboardComponent implements OnInit {
   selectedBoardId = '';
   displayBoardDialog = false;
   displayTaskDialog = false;
-  displayProfileDialog = false;
+  draggedTaskId: string | null = null;
+  activeDropTarget: Element | null = null;
   dialogRef: DynamicDialogRef | undefined;
 
   constructor(
     private taskService: TaskService,
-    private dialogService: DialogService
+    private dialogService: DialogService,
+    private messageService: MessageService
   ) {}
 
   ngOnInit() {
@@ -61,13 +64,167 @@ export class DashboardComponent implements OnInit {
     this.loadTaskBoards();
   }
 
+  ngAfterViewInit() {
+    this.setupDragAndDrop();
+  }
+
+  setupDragAndDrop() {
+    setTimeout(() => {
+      const taskElements = document.querySelectorAll('.task');
+      const boardElements = document.querySelectorAll('.task-list');
+
+      taskElements.forEach(taskElement => {
+        taskElement.setAttribute('draggable', 'true');
+        
+        taskElement.addEventListener('dragstart', (event: any) => {
+          const target = event.target.closest('.task');
+          if (!target) return;
+          
+          this.draggedTaskId = this.findTaskIdFromElement(target);
+          target.classList.add('dragging');
+        });
+        
+        taskElement.addEventListener('dragend', () => {
+          taskElement.classList.remove('dragging');
+          this.draggedTaskId = null;
+          
+          if (this.activeDropTarget) {
+            this.activeDropTarget.classList.remove('drop-active');
+            this.activeDropTarget = null;
+          }
+        });
+      });
+      
+      boardElements.forEach(boardElement => {
+        boardElement.addEventListener('dragover', (event: any) => {
+          event.preventDefault();
+        });
+        
+        boardElement.addEventListener('dragenter', (event: any) => {
+          event.preventDefault();
+          if (this.activeDropTarget) {
+            this.activeDropTarget.classList.remove('drop-active');
+          }
+          
+          boardElement.classList.add('drop-active');
+          this.activeDropTarget = boardElement;
+        });
+        
+        boardElement.addEventListener('dragleave', (event: any) => {
+          if (!boardElement.contains(event.relatedTarget)) {
+            boardElement.classList.remove('drop-active');
+            if (this.activeDropTarget === boardElement) {
+              this.activeDropTarget = null;
+            }
+          }
+        });
+        
+        boardElement.addEventListener('drop', (event: any) => {
+          event.preventDefault();
+          boardElement.classList.remove('drop-active');
+          this.activeDropTarget = null;
+          
+          if (!this.draggedTaskId) return;
+          
+          const targetBoardId = boardElement.getAttribute('data-board-id');
+          if (!targetBoardId) return;
+          
+          this.handleTaskMove(this.draggedTaskId, targetBoardId);
+        });
+      });
+    }, 100);
+  }
+  
+  findTaskIdFromElement(element: Element): string | null {
+    const taskElements = Array.from(document.querySelectorAll('.task'));
+    const index = taskElements.indexOf(element);
+    
+    if (index !== -1) {
+      let taskCount = 0;
+      for (const board of this.boards) {
+        if (board.tasks) {
+          for (const task of board.tasks) {
+            if (taskCount === index) {
+              return task.id;
+            }
+            taskCount++;
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  handleTaskMove(taskId: string, targetBoardId: string) {
+    let sourceBoard: TaskBoard | undefined;
+    let draggedTask: Task | undefined;
+    
+    for (const board of this.boards) {
+      if (board.tasks) {
+        const task = board.tasks.find(t => t.id === taskId);
+        if (task) {
+          sourceBoard = board;
+          draggedTask = task;
+          break;
+        }
+      }
+    }
+    
+    const targetBoard = this.boards.find(board => board.id === targetBoardId);
+    
+    if (sourceBoard && targetBoard && draggedTask && sourceBoard.id !== targetBoard.id) {
+      const taskIndex = sourceBoard.tasks.findIndex(task => task.id === taskId);
+      const taskToMove = sourceBoard.tasks[taskIndex];
+      sourceBoard.tasks.splice(taskIndex, 1);
+      
+      if (!targetBoard.tasks) {
+        targetBoard.tasks = [];
+      }
+      targetBoard.tasks.push(taskToMove);
+      
+      this.taskService.moveTask(taskId, targetBoardId).subscribe(
+        (updatedTask) => {
+          const taskIdx = targetBoard.tasks.findIndex(t => t.id === updatedTask.id);
+          if (taskIdx !== -1) {
+            targetBoard.tasks[taskIdx] = updatedTask;
+          }
+          
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Task Moved',
+            detail: `Task "${updatedTask.title}" moved successfully`
+          });
+          
+          this.setupDragAndDrop();
+        },
+        (error) => {
+          console.error('Error moving task:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to move task'
+          });
+          
+          this.loadTaskBoards();
+        }
+      );
+    }
+  }
+
   loadTaskBoards() {
     this.taskService.getTaskBoards().subscribe(
       (boards) => {
         this.boards = boards;
+        setTimeout(() => this.setupDragAndDrop(), 100);
       },
       (error) => {
         console.error('Error fetching task boards:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load task boards'
+        });
       }
     );
   }
@@ -84,9 +241,21 @@ export class DashboardComponent implements OnInit {
         (board) => {
           this.boards.push(board);
           this.displayBoardDialog = false;
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Board Created',
+            detail: `Board "${board.name}" created successfully`
+          });
+          
+          setTimeout(() => this.setupDragAndDrop(), 100);
         },
         (error) => {
           console.error('Error adding task board:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to create board'
+          });
         }
       );
     }
@@ -115,9 +284,21 @@ export class DashboardComponent implements OnInit {
             board.tasks.push(task);
           }
           this.displayTaskDialog = false;
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Task Added',
+            detail: `Task "${task.title}" added successfully`
+          });
+          
+          setTimeout(() => this.setupDragAndDrop(), 100);
         },
         (error) => {
           console.error("Error adding task:", error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to add task'
+          });
         }
       );
     }
@@ -127,9 +308,19 @@ export class DashboardComponent implements OnInit {
     this.taskService.deleteTaskBoard(boardId).subscribe(
       () => {
         this.boards = this.boards.filter(board => board.id !== boardId);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Board Deleted',
+          detail: 'Board deleted successfully'
+        });
       },
       (error) => {
         console.error('Error deleting task board:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to delete board'
+        });
       }
     );
   }
@@ -141,33 +332,21 @@ export class DashboardComponent implements OnInit {
         if (board) {
           board.tasks = board.tasks.filter(t => t.id !== taskId);
         }
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Task Deleted',
+          detail: 'Task deleted successfully'
+        });
       },
       (error) => {
         console.error('Error deleting task:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to delete task'
+        });
       }
     );
-  }
-  
-  onTaskDrop(event: any, targetBoardId: string) {
-    const draggedTask: Task = event.dragData;
-    const sourceBoard = this.boards.find(board => board.tasks && board.tasks.some(task => task.id === draggedTask.id));
-    const targetBoard = this.boards.find(board => board.id === targetBoardId);
-
-    if (sourceBoard && targetBoard && sourceBoard.id !== targetBoard.id) {
-      this.taskService.moveTask(draggedTask.id, targetBoardId).subscribe(
-        (updatedTask) => {
-          sourceBoard.tasks = sourceBoard.tasks.filter(task => task.id !== draggedTask.id);
-          if (!targetBoard.tasks) {
-            targetBoard.tasks = [];
-          }
-          targetBoard.tasks.push(updatedTask);
-        },
-        (error) => {
-          console.error('Error moving task:', error);
-          this.loadTaskBoards();
-        }
-      );
-    }
   }
 
   openProfileDialog() {
@@ -176,9 +355,6 @@ export class DashboardComponent implements OnInit {
       width: '500px',
       contentStyle: { overflow: 'auto' },
       baseZIndex: 10000
-    });
-
-    this.dialogRef.onClose.subscribe(() => {
     });
   }
 

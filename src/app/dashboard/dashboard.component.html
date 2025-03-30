@@ -1,4 +1,6 @@
 <div class="dashboard-container min-h-screen bg-gray-100">
+  <p-toast></p-toast>
+  
   <nav class="dashboard-nav bg-white px-6 py-4 shadow-md flex justify-between items-center sticky top-0 z-50">
     <div class="text-2xl font-bold text-gray-900">Dashboard</div>
     <div class="flex items-center gap-4">
@@ -29,27 +31,41 @@
 
       <div class="board-container">
         <div *ngFor="let board of boards" class="board">
-          <h3 class="board-title">{{ board.name }}</h3>
-          <div class="board-actions">
-            <button class="btn btn-primary" (click)="openTaskDialog(board.id)">
-              <i class="pi pi-plus"></i> Add Task
-            </button>
-            <button class="btn btn-danger" (click)="deleteBoard(board.id)">
-              <i class="pi pi-trash"></i> Delete
-            </button>
+          <div class="board-header">
+            <h3 class="board-title">{{ board.name }}</h3>
+            <div class="board-actions">
+              <button class="btn btn-primary" (click)="openTaskDialog(board.id)" pTooltip="Add Task">
+                <i class="pi pi-plus"></i>
+              </button>
+              <button class="btn btn-danger" (click)="deleteBoard(board.id)" pTooltip="Delete Board">
+                <i class="pi pi-trash"></i>
+              </button>
+            </div>
           </div>
       
-          <div class="task-list" pDroppable (onDrop)="onTaskDrop($event, board.id)">
-            <div *ngFor="let task of board.tasks" pDraggable class="task">
+          <div 
+            class="task-list" 
+            [attr.data-board-id]="board.id">
+            
+            <div *ngIf="!board.tasks || board.tasks.length === 0" class="empty-board-message">
+              No tasks yet
+            </div>
+            
+            <div 
+              *ngFor="let task of board.tasks" 
+              class="task"
+              [class.dragging]="draggedTaskId === task.id">
+              <div class="drag-handle">
+                <i class="pi pi-bars"></i>
+              </div>
               <span class="task-title">{{ task.title }}</span>
-              <button class="btn btn-icon btn-danger" (click)="deleteTask(board.id, task.id)">
+              <button class="btn-icon btn-danger" (click)="deleteTask(board.id, task.id)" pTooltip="Delete Task">
                 <i class="pi pi-trash"></i>
               </button>
             </div>
           </div>
         </div>
       </div>      
-      
     </div>
 
     <p-dialog [(visible)]="displayBoardDialog" header="Create Board" class="p-fluid">
