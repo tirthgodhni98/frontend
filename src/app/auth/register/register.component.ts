@@ -15,6 +15,7 @@ export class RegisterComponent {
   registerForm: FormGroup;
   errorMessage: string = '';
   isLoading: boolean = false;
+  successMessage: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -36,13 +37,15 @@ export class RegisterComponent {
     if (this.registerForm.valid) {
       this.isLoading = true;
       this.errorMessage = '';
+      this.successMessage = '';
       
       this.auth.register(this.registerForm.value.email, this.registerForm.value.password)
         .subscribe({
-          next: (res) => {
-            localStorage.setItem('token', res.token);
-            localStorage.setItem('user', JSON.stringify(res.user));
-            this.router.navigate(['/dashboard']);
+          next: (response) => {
+            this.successMessage = response.message || 'Account created successfully! Redirecting to login...';
+            setTimeout(() => {
+              this.router.navigate(['/login']);
+            }, 1500);
           },
           error: (err) => {
             this.errorMessage = err.message;

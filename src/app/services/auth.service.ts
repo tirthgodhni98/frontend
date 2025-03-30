@@ -11,6 +11,14 @@ interface AuthResponse {
   };
 }
 
+interface RegisterResponse {
+  message: string;
+  user: {
+    id: string;
+    email: string;
+  };
+}
+
 interface AuthError {
   message: string;
   status: number;
@@ -22,8 +30,8 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
-  register(email: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/register`, { email, password })
+  register(email: string, password: string): Observable<RegisterResponse> {
+    return this.http.post<RegisterResponse>(`${this.apiUrl}/auth/register`, { email, password })
       .pipe(
         catchError(error => {
           throw this.handleError(error);

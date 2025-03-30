@@ -1,1 +1,23 @@
 @use '../auth.styles' as auth;
+
+.success-message {
+  color: #2f855a;
+  text-align: center;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background-color: #f0fff4;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid #c6f6d5;
+  width: 100%;
+  box-sizing: border-box;
+
+  &::before {
+    content: "✓";
+    font-size: 1rem;
+  }
+}
