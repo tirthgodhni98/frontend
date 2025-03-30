@@ -8,11 +8,13 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { DragDropModule } from 'primeng/dragdrop';
 import { v4 as uuidv4 } from 'uuid';
+import { TaskService } from '../services/task.service';
+import { HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ButtonModule, DialogModule, InputTextModule, DragDropModule, DragDropModule],
+  imports: [CommonModule, RouterModule, FormsModule, ButtonModule, DialogModule, InputTextModule, DragDropModule, DragDropModule, HttpClientModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
@@ -26,14 +28,27 @@ export class DashboardComponent implements OnInit {
   displayBoardDialog = false;
   displayTaskDialog = false;
 
+  constructor(private taskService: TaskService) {}
 
   ngOnInit() {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       this.user = JSON.parse(userStr);
     }
+    this.loadTaskBoards();
   }
 
+  loadTaskBoards() {
+    this.taskService.getTaskBoards().subscribe(
+      (boards) => {
+        this.boards = boards;
+        console.log(this.boards)
+      },
+      (error) => {
+        console.error('Error fetching task boards:', error);
+      }
+    );
+  }
 
   openBoardDialog() {
     this.newBoardName = '';
@@ -42,8 +57,16 @@ export class DashboardComponent implements OnInit {
 
   addBoard() {
     if (this.newBoardName.trim()) {
-      this.boards.push({ id: uuidv4(), name: this.newBoardName, tasks: [] });
-      this.displayBoardDialog = false;
+      const newBoard: TaskBoard = { id: uuidv4(), name: this.newBoardName, tasks: [] };
+      this.taskService.addTaskBoard(newBoard).subscribe(
+        (board) => {
+          this.boards.push(board);
+          this.displayBoardDialog = false;
+        },
+        (error) => {
+          console.error('Error adding task board:', error);
+        }
+      );
     }
   }
 
@@ -55,22 +78,57 @@ export class DashboardComponent implements OnInit {
 
   addTask() {
     const board = this.boards.find(b => b.id === this.selectedBoardId);
-    if (board && this.newTaskTitle.trim()) {
-      board.tasks.push({ id: uuidv4(), title: this.newTaskTitle });
-      this.displayTaskDialog = false;
+    const userId = this.user?.id;
+    console.log({board, userId});
+  
+    if (board && this.newTaskTitle.trim() && userId) {
+      const newTask: { title: string; boardId: string; userId: string } = {
+        title: this.newTaskTitle,
+        boardId: board.id,
+        userId
+      };
+  
+      this.taskService.addTask(newTask).subscribe(
+        (task) => {
+          board.tasks.push(task);
+          this.displayTaskDialog = false;
+        },
+        (error) => {
+          console.error("Error adding task:", error);
+        }
+      );
     }
   }
+  
+  
 
   deleteBoard(boardId: string) {
-    this.boards = this.boards.filter(b => b.id !== boardId);
+    this.taskService.deleteTaskBoard(boardId).subscribe(
+      () => {
+        this.boards = this.boards.filter(board => board.id !== boardId);
+        this.displayBoardDialog = false;
+      },
+      (error) => {
+        console.error('Error deleting task board:', error);
+      }
+    );
   }
+  
 
   deleteTask(boardId: string, taskId: string) {
-    const board = this.boards.find(b => b.id === boardId);
-    if (board) {
-      board.tasks = board.tasks.filter(t => t.id !== taskId);
-    }
+    this.taskService.deleteTask(taskId).subscribe(
+      () => {
+        const board = this.boards.find(b => b.id === boardId);
+        if (board) {
+          board.tasks = board.tasks.filter(t => t.id !== taskId);
+        }
+      },
+      (error) => {
+        console.error('Error deleting task:', error);
+      }
+    );
   }
+  
 
   onTaskDrop(event: any, targetBoardId: string) {
     const draggedTask: Task = event.dragData;
@@ -88,4 +146,4 @@ export class DashboardComponent implements OnInit {
     localStorage.removeItem('user');
     window.location.href = '/login';
   }
-} 
+}
