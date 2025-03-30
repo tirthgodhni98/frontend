@@ -10,11 +10,30 @@ import { DragDropModule } from 'primeng/dragdrop';
 import { v4 as uuidv4 } from 'uuid';
 import { TaskService } from '../services/task.service';
 import { HttpClientModule } from '@angular/common/http';
+import { ProfileComponent } from '../components/profile/profile.component';
+import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { DynamicDialogModule } from 'primeng/dynamicdialog';
+import { AvatarModule } from 'primeng/avatar';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ButtonModule, DialogModule, InputTextModule, DragDropModule, DragDropModule, HttpClientModule],
+  imports: [
+    CommonModule, 
+    RouterModule, 
+    FormsModule, 
+    ButtonModule, 
+    DialogModule, 
+    InputTextModule, 
+    DragDropModule, 
+    HttpClientModule,
+    DynamicDialogModule,
+    AvatarModule,
+    ProfileComponent,
+    TooltipModule
+  ],
+  providers: [DialogService],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
@@ -27,8 +46,13 @@ export class DashboardComponent implements OnInit {
   selectedBoardId = '';
   displayBoardDialog = false;
   displayTaskDialog = false;
+  displayProfileDialog = false;
+  dialogRef: DynamicDialogRef | undefined;
 
-  constructor(private taskService: TaskService) {}
+  constructor(
+    private taskService: TaskService,
+    private dialogService: DialogService
+  ) {}
 
   ngOnInit() {
     const userStr = localStorage.getItem('user');
@@ -42,7 +66,7 @@ export class DashboardComponent implements OnInit {
     this.taskService.getTaskBoards().subscribe(
       (boards) => {
         this.boards = boards;
-        console.log(this.boards)
+        console.log(this.boards);
       },
       (error) => {
         console.error('Error fetching task boards:', error);
@@ -100,8 +124,6 @@ export class DashboardComponent implements OnInit {
     }
   }
   
-  
-
   deleteBoard(boardId: string) {
     this.taskService.deleteTaskBoard(boardId).subscribe(
       () => {
@@ -114,7 +136,6 @@ export class DashboardComponent implements OnInit {
     );
   }
   
-
   deleteTask(boardId: string, taskId: string) {
     this.taskService.deleteTask(taskId).subscribe(
       () => {
@@ -129,7 +150,6 @@ export class DashboardComponent implements OnInit {
     );
   }
   
-
   onTaskDrop(event: any, targetBoardId: string) {
     const draggedTask: Task = event.dragData;
     const sourceBoard = this.boards.find(board => board.tasks.some(task => task.id === draggedTask.id));
@@ -139,6 +159,18 @@ export class DashboardComponent implements OnInit {
       sourceBoard.tasks = sourceBoard.tasks.filter(task => task.id !== draggedTask.id);
       targetBoard.tasks.push(draggedTask);
     }
+  }
+
+  openProfileDialog() {
+    this.dialogRef = this.dialogService.open(ProfileComponent, {
+      header: 'My Profile',
+      width: '500px',
+      contentStyle: { overflow: 'auto' },
+      baseZIndex: 10000
+    });
+
+    this.dialogRef.onClose.subscribe(() => {
+    });
   }
 
   logout() {
