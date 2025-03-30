@@ -22,7 +22,7 @@ export class TaskService {
     });
   }
 
-  addTaskBoard(board: TaskBoard): Observable<TaskBoard> {
+  addTaskBoard(board: Partial<TaskBoard>): Observable<TaskBoard> {
     return this.http.post<TaskBoard>(`${this.apiUrl}/board`, board, { 
       headers: this.authService.getAuthHeaders() 
     });
@@ -41,19 +41,19 @@ export class TaskService {
   }
 
   getTasks(): Observable<Task[]> {
-    return this.http.get<Task[]>(`${this.apiUrl}`, { 
+    return this.http.get<Task[]>(`${this.apiUrl}/tasks`, { 
       headers: this.authService.getAuthHeaders() 
     });
   }
 
-  addTask(task: { title: string; boardId: string; userId: string }): Observable<Task> {
+  addTask(task: { title: string; boardId: string }): Observable<Task> {
     return this.http.post<Task>(`${this.apiUrl}/task`, task, { 
       headers: this.authService.getAuthHeaders() 
     });
   }
 
   updateTask(task: Task): Observable<Task> {
-    return this.http.put<Task>(`${this.apiUrl}/${task.id}`, task, { 
+    return this.http.put<Task>(`${this.apiUrl}/task/${task.id}`, task, { 
       headers: this.authService.getAuthHeaders() 
     });
   }
@@ -65,7 +65,7 @@ export class TaskService {
   }
 
   moveTask(taskId: string, targetBoardId: string): Observable<Task> {
-    return this.http.put<Task>(`${this.apiUrl}/move/${taskId}`, { targetBoardId }, { 
+    return this.http.put<Task>(`${this.apiUrl}/task/move/${taskId}`, { targetBoardId }, { 
       headers: this.authService.getAuthHeaders() 
     });
   }

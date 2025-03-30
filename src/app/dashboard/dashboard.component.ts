@@ -65,7 +65,6 @@ export class DashboardComponent implements OnInit {
     this.taskService.getTaskBoards().subscribe(
       (boards) => {
         this.boards = boards;
-        console.log(this.boards);
       },
       (error) => {
         console.error('Error fetching task boards:', error);
@@ -80,7 +79,7 @@ export class DashboardComponent implements OnInit {
 
   addBoard() {
     if (this.newBoardName.trim()) {
-      const newBoard: TaskBoard = { id: uuidv4(), name: this.newBoardName, tasks: [] };
+      const newBoard: Partial<TaskBoard> = { name: this.newBoardName };
       this.taskService.addTaskBoard(newBoard).subscribe(
         (board) => {
           this.boards.push(board);
@@ -100,20 +99,21 @@ export class DashboardComponent implements OnInit {
   }
 
   addTask() {
-    const board = this.boards.find(b => b.id === this.selectedBoardId);
-    const userId = this.user?.id;
-    console.log({board, userId});
-  
-    if (board && this.newTaskTitle.trim() && userId) {
-      const newTask: { title: string; boardId: string; userId: string } = {
+    if (this.selectedBoardId && this.newTaskTitle.trim()) {
+      const taskData = {
         title: this.newTaskTitle,
-        boardId: board.id,
-        userId
+        boardId: this.selectedBoardId
       };
-  
-      this.taskService.addTask(newTask).subscribe(
+      
+      this.taskService.addTask(taskData).subscribe(
         (task) => {
-          board.tasks.push(task);
+          const board = this.boards.find(b => b.id === this.selectedBoardId);
+          if (board) {
+            if (!board.tasks) {
+              board.tasks = [];
+            }
+            board.tasks.push(task);
+          }
           this.displayTaskDialog = false;
         },
         (error) => {
@@ -127,7 +127,6 @@ export class DashboardComponent implements OnInit {
     this.taskService.deleteTaskBoard(boardId).subscribe(
       () => {
         this.boards = this.boards.filter(board => board.id !== boardId);
-        this.displayBoardDialog = false;
       },
       (error) => {
         console.error('Error deleting task board:', error);
@@ -151,12 +150,23 @@ export class DashboardComponent implements OnInit {
   
   onTaskDrop(event: any, targetBoardId: string) {
     const draggedTask: Task = event.dragData;
-    const sourceBoard = this.boards.find(board => board.tasks.some(task => task.id === draggedTask.id));
+    const sourceBoard = this.boards.find(board => board.tasks && board.tasks.some(task => task.id === draggedTask.id));
     const targetBoard = this.boards.find(board => board.id === targetBoardId);
 
-    if (sourceBoard && targetBoard && sourceBoard !== targetBoard) {
-      sourceBoard.tasks = sourceBoard.tasks.filter(task => task.id !== draggedTask.id);
-      targetBoard.tasks.push(draggedTask);
+    if (sourceBoard && targetBoard && sourceBoard.id !== targetBoard.id) {
+      this.taskService.moveTask(draggedTask.id, targetBoardId).subscribe(
+        (updatedTask) => {
+          sourceBoard.tasks = sourceBoard.tasks.filter(task => task.id !== draggedTask.id);
+          if (!targetBoard.tasks) {
+            targetBoard.tasks = [];
+          }
+          targetBoard.tasks.push(updatedTask);
+        },
+        (error) => {
+          console.error('Error moving task:', error);
+          this.loadTaskBoards();
+        }
+      );
     }
   }
 
